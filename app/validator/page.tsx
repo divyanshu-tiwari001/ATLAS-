@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import Navigation from '@/components/Navigation';
+import type { ValidationResult } from '@/lib/aiEngine';
 
 export default function Validator() {
   const [idea, setIdea] = useState('');
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<ValidationResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -15,22 +16,32 @@ export default function Validator() {
     setError('');
     setResult(null);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     try {
       const res = await fetch('/api/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idea }),
+        signal: controller.signal,
       });
 
+      clearTimeout(timeoutId);
       const data = await res.json();
 
       if (!res.ok) {
         throw new Error(data.error || 'Failed to validate');
       }
 
-      setResult(data);
-    } catch (err: any) {
-      setError(err.message);
+      setResult(data as ValidationResult);
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err instanceof Error) {
+        setError(err.name === 'AbortError' ? 'Request timed out. Please try again.' : err.message);
+      } else {
+        setError('An unexpected error occurred');
+      }
     } finally {
       setLoading(false);
     }
@@ -38,14 +49,7 @@ export default function Validator() {
 
   return (
     <main className="min-h-screen bg-black text-white">
-      <nav className="border-b border-gray-800 sticky top-0 bg-black/95 backdrop-blur-sm z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">ATLAS</h1>
-          <Link href="/" className="hover:text-blue-400 transition">
-            Home
-          </Link>
-        </div>
-      </nav>
+      <Navigation />
 
       <div className="max-w-4xl mx-auto px-6 py-20">
         <h1 className="text-5xl font-bold mb-4">Validate Your Startup Idea</h1>
@@ -60,15 +64,27 @@ export default function Validator() {
             placeholder="Describe your startup idea in detail..."
             className="w-full h-48 bg-gray-900 border border-gray-800 rounded-lg p-4 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition"
             required
+            minLength={10}
+            maxLength={2000}
           />
-          <button
-            type="submit"
-            disabled={loading}
-            className="mt-4 bg-white text-black px-8 py-3 rounded-lg font-bold hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Analyzing...' : 'Analyze Idea'}
-          </button>
+          <div className="flex justify-between items-center mt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-white text-black px-8 py-3 rounded-lg font-bold hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Analyzing...' : 'Analyze Idea'}
+            </button>
+            <span className="text-gray-500 text-sm">{idea.length}/2000</span>
+          </div>
         </form>
+
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-12 gap-4">
+            <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-gray-400 text-sm">Analyzing your idea with AI...</p>
+          </div>
+        )}
 
         {error && (
           <div className="p-4 bg-red-900/20 border border-red-900 rounded-lg mb-8">
@@ -103,23 +119,23 @@ export default function Validator() {
               </div>
             </div>
 
-            {result.strengths && (
+            {result.strengths && result.strengths.length > 0 && (
               <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
                 <h4 className="text-lg font-bold mb-4">Strengths</h4>
                 <ul className="list-disc list-inside space-y-2">
-                  {result.strengths.map((s: string, i: number) => (
-                    <li key={i} className="text-gray-400">{s}</li>
+                  {result.strengths.map((s, i) => (
+                    <li key={`strength-${i}-${s}`} className="text-gray-400">{s}</li>
                   ))}
                 </ul>
               </div>
             )}
 
-            {result.weaknesses && (
+            {result.weaknesses && result.weaknesses.length > 0 && (
               <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
                 <h4 className="text-lg font-bold mb-4">Weaknesses</h4>
                 <ul className="list-disc list-inside space-y-2">
-                  {result.weaknesses.map((w: string, i: number) => (
-                    <li key={i} className="text-gray-400">{w}</li>
+                  {result.weaknesses.map((w, i) => (
+                    <li key={`weakness-${i}-${w}`} className="text-gray-400">{w}</li>
                   ))}
                 </ul>
               </div>

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Navigation from '@/components/Navigation';
 
 export const metadata = {
   title: 'Terms of Service - ATLAS',
@@ -8,15 +9,7 @@ export const metadata = {
 export default function TermsPage() {
   return (
     <main className="min-h-screen bg-black text-white">
-      <nav className="border-b border-gray-800 sticky top-0 bg-black/95 backdrop-blur-sm z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">ATLAS</h1>
-          <Link href="/" className="hover:text-blue-400 transition">
-            Home
-          </Link>
-        </div>
-      </nav>
-
+      <Navigation />
       <div className="max-w-4xl mx-auto px-6 py-20">
         <h2 className="text-5xl font-bold mb-6">Terms of Service</h2>
         <p className="text-gray-400 mb-6">

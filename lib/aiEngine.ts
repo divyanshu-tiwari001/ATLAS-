@@ -15,14 +15,14 @@ if (!process.env.OPENAI_API_KEY) {
   console.warn('Warning: OPENAI_API_KEY environment variable is not set.');
 }
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export async function validateIdea(idea: string): Promise<ValidationResult> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY environment variable is not set');
   }
+
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
@@ -41,13 +41,24 @@ export async function validateIdea(idea: string): Promise<ValidationResult> {
     response_format: { type: 'json_object' },
   });
 
-  const result = JSON.parse(
-    completion.choices[0].message.content || '{}'
-  ) as ValidationResult;
+  const choice = completion.choices[0];
+  if (!choice || !choice.message || !choice.message.content) {
+    throw new Error('No response received from AI');
+  }
+
+  let result: ValidationResult;
+  try {
+    result = JSON.parse(choice.message.content) as ValidationResult;
+  } catch {
+    throw new Error('Invalid JSON response from AI');
+  }
 
   if (typeof result.score !== 'number' || !result.summary) {
     throw new Error('Invalid response from AI: missing required fields');
   }
+
+  // Clamp score to valid range 0-100
+  result.score = Math.max(0, Math.min(100, result.score));
 
   return result;
 }
