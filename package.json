@@ -26,5 +26,5 @@
     "eslint-config-next": "^14.0.0"
   },
   "author": "Arham Mulani",
-  "license": "MIT"
+  "license": "Apache-2.0"
 }

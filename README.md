@@ -257,7 +257,7 @@ npm run lint
 
 ## License
 
-MIT License - feel free to use for personal or commercial projects
+Apache License 2.0 - feel free to use for personal or commercial projects
 
 ## Author
 
